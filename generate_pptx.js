@@ -123,7 +123,7 @@ const tocItems = [
   { num: "04", title: "网络架构", desc: "网络拓扑、公网访问与限制" },
   { num: "05", title: "存储架构", desc: "磁盘布局、OverlayFS 与持久卷" },
   { num: "06", title: "安全与隔离模型", desc: "5 层隔离机制与沙盒限制" },
-  { num: "07", title: "MCP 服务", desc: "内置工具服务与通信方式" },
+  { num: "07", title: "工具技能服务", desc: "按需调用的子进程脚本（浏览器/PDF/Office 等）" },
   { num: "08", title: "预装工具链与规格", desc: "开发工具版本与环境规格汇总" },
 ];
 
@@ -267,9 +267,9 @@ const procs = [
   { level: 1, name: "supervisord (PID 825)", desc: "进程管理器，监控 agent-tool-host", color: C.accent5 },
   { level: 2, name: "agent-tool-host (PID 826)", desc: "工具执行代理，接收推理服务指令", color: C.accent },
   { level: 3, name: "bash (子进程)", desc: "用户命令执行 (RunCommand)", color: C.textSecondary },
-  { level: 3, name: "MCP Browser", desc: "浏览器自动化服务", color: C.textSecondary },
-  { level: 3, name: "MCP PDF", desc: "PDF 表单填充/校验/提取", color: C.textSecondary },
-  { level: 3, name: "MCP Office", desc: "DOCX/PPTX/XLSX 文档处理", color: C.textSecondary },
+  { level: 3, name: "browser (CDP)", desc: "浏览器自动化 (Chrome DevTools Protocol)", color: C.textSecondary },
+  { level: 3, name: "skill: pdf", desc: "PDF 表单填充/校验/提取", color: C.textSecondary },
+  { level: 3, name: "skill: office", desc: "DOCX/PPTX/XLSX 文档处理", color: C.textSecondary },
 ];
 
 let treeY = 1.3;
@@ -527,53 +527,67 @@ lifecycleSteps.forEach((s, i) => {
 });
 
 // ============================================================
-// SLIDE 10: MCP Services
+// SLIDE 10: Tool Skills
 // ============================================================
 let slide10 = pres.addSlide();
 addBg(slide10);
-addTitleBar(slide10, "MCP 服务", "MODEL CONTEXT PROTOCOL SERVICES");
+addTitleBar(slide10, "工具技能服务", "TOOL SKILLS — ON-DEMAND SUBPROCESSES");
 
-const mcpServices = [
-  { name: "docx", desc: "Word 文档生成/编辑", tech: "Python (python-docx, OOXML)", color: C.accent2 },
-  { name: "pdf", desc: "PDF 表单填充/校验/提取", tech: "Python (PyPDF2, pdfplumber)", color: C.accent3 },
-  { name: "pptx", desc: "PPT 幻灯片生成/设计", tech: "Python + pptxgenjs (Node.js)", color: C.accent4 },
-  { name: "xlsx", desc: "Excel 电子表格操作", tech: "Python (openpyxl)", color: C.accent5 },
-  { name: "browser", desc: "浏览器自动化", tech: "基于 CDP 协议", color: C.accent },
+const skillServices = [
+  { name: "browser", desc: "浏览器自动化", tech: "CDP 端点 127.0.0.1:8088", note: "按需调用", color: C.accent },
+  { name: "pdf", desc: "PDF 表单填充/校验/提取", tech: "Python (PyPDF2, pdfplumber)", note: "子进程", color: C.accent3 },
+  { name: "docx", desc: "Word 文档生成/编辑", tech: "Python (python-docx, OOXML)", note: "子进程", color: C.accent2 },
+  { name: "pptx", desc: "PPT 幻灯片生成/设计", tech: "Python + pptxgenjs (Node.js)", note: "子进程", color: C.accent4 },
+  { name: "xlsx", desc: "Excel 电子表格操作", tech: "Python (openpyxl)", note: "子进程", color: C.accent5 },
 ];
 
-mcpServices.forEach((s, i) => {
-  const x = 0.4 + i * 1.9;
-  addCard(slide10, x, 1.3, 1.7, 2.6);
+skillServices.forEach((s, i) => {
+  const x = 0.25 + i * 1.95;
+  addCard(slide10, x, 1.3, 1.75, 2.6);
   // Top color bar
   slide10.addShape(pres.shapes.RECTANGLE, {
-    x, y: 1.3, w: 1.7, h: 0.06, fill: { color: s.color },
+    x, y: 1.3, w: 1.75, h: 0.06, fill: { color: s.color },
   });
   // Name
   slide10.addText(s.name, {
-    x: x + 0.1, y: 1.5, w: 1.5, h: 0.4, fontSize: 16, fontFace: "Arial",
+    x: x + 0.1, y: 1.5, w: 1.55, h: 0.4, fontSize: 16, fontFace: "Arial",
     color: s.color, bold: true, margin: 0,
   });
   // Description
   slide10.addText(s.desc, {
-    x: x + 0.1, y: 2.0, w: 1.5, h: 0.6, fontSize: 10, fontFace: "Arial",
+    x: x + 0.1, y: 2.0, w: 1.55, h: 0.5, fontSize: 10, fontFace: "Arial",
     color: C.textPrimary, margin: 0,
   });
   // Tech
   slide10.addText(s.tech, {
-    x: x + 0.1, y: 2.7, w: 1.5, h: 0.8, fontSize: 9, fontFace: "Arial",
+    x: x + 0.1, y: 2.6, w: 1.55, h: 0.6, fontSize: 8, fontFace: "Arial",
     color: C.textSecondary, margin: 0,
+  });
+  // Note badge
+  slide10.addShape(pres.shapes.ROUNDED_RECTANGLE, {
+    x: x + 0.1, y: 3.4, w: 1.0, h: 0.28, fill: { color: s.color, transparency: 80 },
+    line: { color: s.color, width: 0.5 }, rectRadius: 0.04,
+  });
+  slide10.addText(s.note, {
+    x: x + 0.1, y: 3.4, w: 1.0, h: 0.28, fontSize: 9, fontFace: "Arial",
+    color: s.color, align: "center", valign: "middle", margin: 0,
   });
 });
 
-// Communication card
-addCard(slide10, 0.4, 4.2, 9.2, 0.8);
-slide10.addText("通信方式:  ", {
-  x: 0.6, y: 4.3, w: 1.2, h: 0.3, fontSize: 11, fontFace: "Arial",
-  color: C.accent, bold: true, margin: 0,
+// Important note card
+addCard(slide10, 0.25, 4.2, 9.5, 1.0);
+slide10.addText("⚠  不是独立 MCP 服务进程", {
+  x: 0.45, y: 4.3, w: 3, h: 0.3, fontSize: 12, fontFace: "Arial",
+  color: C.accent4, bold: true, margin: 0,
 });
-slide10.addText("Agent Tool Host ↔ MCP 子进程  |  JSON-RPC (stdin/stdout 或 HTTP)  |  标准输入接收请求 → 标准输出返回结果 → 标准错误输出日志", {
-  x: 1.7, y: 4.3, w: 7.7, h: 0.6, fontSize: 10, fontFace: "Arial",
-  color: C.textSecondary, valign: "middle", margin: 0,
+slide10.addText([
+  { text: "mcp_servers.json 配置均为空 ({}), ", options: { color: C.textSecondary } },
+  { text: "没有持久化的 MCP 服务端。", options: { color: C.textSecondary } },
+  { text: "\n这些能力是 agent-tool-host 按需启动的子进程脚本，", options: { color: C.textSecondary } },
+  { text: "任务完成后自动退出。", options: { color: C.textSecondary } },
+], {
+  x: 0.45, y: 4.6, w: 9.1, h: 0.5, fontSize: 10, fontFace: "Arial",
+  margin: 0, lineSpacingMultiple: 1.3,
 });
 
 // ============================================================

@@ -82,8 +82,8 @@
 │  │       │          │          │                             │   │
 │  │       ▼          ▼          ▼                             │   │
 │  │  ┌────────┐ ┌────────┐ ┌────────────────────┐           │   │
-│  │  │ 代码   │ │ 文件   │ │ MCP 服务            │           │   │
-│  │  │ 执行   │ │ 操作   │ │ - Browser (浏览器)  │           │   │
+│  │  │ 代码   │ │ 文件   │ │ 技能脚本 (按需)     │           │   │
+│  │  │ 执行   │ │ 操作   │ │ - Browser (CDP)    │           │   │
 │  │  │        │ │        │ │ - PDF               │           │   │
 │  │  │        │ │        │ │ - DOCX              │           │   │
 │  │  │        │ │        │ │ - PPTX              │           │   │
@@ -246,9 +246,9 @@ PID 1: /usr/bin/tini  (init 进程, 处理僵尸进程)
   └─ PID 825: /usr/bin/supervisord
        └─ PID 826: /app/bin/agent-tool-host
             ├─ (子进程) bash — 用户命令执行
-            ├─ (子进程) MCP 服务 — 浏览器自动化
-            ├─ (子进程) MCP 服务 — PDF 处理
-            ├─ (子进程) MCP 服务 — Office 文档
+            ├─ (子进程) 技能脚本 — 浏览器自动化 (CDP)
+            ├─ (子进程) 技能脚本 — PDF 处理
+            ├─ (子进程) 技能脚本 — Office 文档
             └─ (子进程) 其他工具进程
 ```
 
@@ -424,32 +424,32 @@ K8s 创建新的 Pod (Kata Container)
 
 ---
 
-## 8. MCP (Model Context Protocol) 服务
+## 8. 工具技能服务
 
-### 内置 MCP 服务
+### 按需调用的技能脚本
 
-沙盒预装了多套 MCP 服务（存放在 `/data/user/work/` 下各版本）：
+沙盒不运行独立的 MCP 服务端进程。以下工具能力由 agent-tool-host 按需调用，以子进程方式执行：
 
-| 服务 | 功能 | 实现技术 |
-|------|------|----------|
-| **docx** | Word 文档生成/编辑 | Python (python-docx, OOXML) |
-| **pdf** | PDF 表单填充/校验/提取 | Python (PyPDF2, pdfplumber) |
-| **pptx** | PPT 幻灯片生成/设计 | Python + pptxgenjs (Node.js) |
-| **xlsx** | Excel 电子表格操作 | Python (openpyxl) |
-| **browser** | 浏览器自动化 | 基于 CDP 协议 |
+| "服务" | 实际实现 | 启动方式 |
+|--------|----------|----------|
+| **browser** | CDP 端点连接浏览器实例 (`127.0.0.1:8088/v1/cdp`) | agent-tool-host 按需调用 |
+| **pdf** | Python 脚本 (PyPDF2, pdfplumber) | 子进程执行 |
+| **docx** | Python 脚本 (python-docx, OOXML) | 子进程执行 |
+| **pptx** | Python + Node.js (pptxgenjs) | 子进程执行 |
+| **xlsx** | Python 脚本 (openpyxl) | 子进程执行 |
 
-### MCP 通信方式
+### MCP 配置现状
 
 ```
-Agent Tool Host
-    │ JSON-RPC (stdin/stdout 或 HTTP)
-    ▼
-MCP 子进程
-    │
-    ├── 标准输入: 接收工具调用请求
-    ├── 标准输出: 返回工具执行结果
-    └── 标准错误: 日志输出
+/app/etc/mcp_servers.json           → {"mcpServers":{}}  (空)
+/data/user/mcp/mcp-servers.json     → {"mcpServers":{}}  (空)
 ```
+
+没有任何持久化的 MCP 服务端配置。这些能力通过 skill 脚本（存放在 `/data/user/builtin/work/` 下）提供给 agent-tool-host，调用时临时启动子进程，任务完成后退出。
+
+### 唯一的 MCP 基础设施
+
+`/app/mcp_proxy_bootstrap/preload.cjs` 是一个 HTTP 代理注入器（基于 undici 库），作用是在 Node.js 进程启动时自动设置全局代理，让所有 HTTP/HTTPS 请求走沙盒内的 HTTPS Proxy（`127.0.0.1:18080`），与 MCP 服务无关。
 
 ---
 
